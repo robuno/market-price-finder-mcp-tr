@@ -1,7 +1,7 @@
 [project]
 name = "market-price-finder-mcp-tr"
 version = "0.1.0"
-description = "Add your description here"
+description = "This project is a Model Context Protocol (MCP) tool that helps users find the cheapest price for a product in nearby markets based on a natural language prompt that includes both product name and location."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
