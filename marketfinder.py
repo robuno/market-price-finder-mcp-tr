@@ -2,7 +2,13 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 from typing import Optional, Dict, Any
-from parser_utils import parse_prompt  # externalized prompt parser
+# from parser_utils import parse_prompt  # externalized prompt parser
+import re
+from typing import Union
+
+
+
+
 # Initialize FastMCP server
 mcp = FastMCP("market-finder")
 
@@ -131,6 +137,39 @@ async def find_cheapest_product_by_location(prompt: str) -> dict[str, Any] | str
 
     result = await get_market_product(product_text)
     return result
+
+
+
+def parse_prompt(prompt: str) -> Union[dict[str, str], str]:
+    """
+    Parse a natural language prompt to extract location and product.
+    
+    Supported patterns:
+    - "X konumu için Y"
+    - "X'de Y ne kadar"
+    - "X'da Y ne kadar"
+    - "X civarında Y fiyatı"
+    """
+    prompt = prompt.lower().strip()
+
+    patterns = [
+        r"(?P<location>.+?)\s+konumu için\s+(?P<product>.+?)\s+.*",
+        r"(?P<location>.+?)'da\s+(?P<product>.+?)\s+ne kadar",
+        r"(?P<location>.+?)'de\s+(?P<product>.+?)\s+ne kadar",
+        r"(?P<location>.+?) civarında\s+(?P<product>.+?) fiyat[ıi]?",
+    ]
+
+    for pattern in patterns:
+        match = re.match(pattern, prompt)
+        if match:
+            return {
+                "location": match.group("location").strip(),
+                "product": match.group("product").strip()
+            }
+
+    return "Could not extract location and product. Please provide a clearer input."
+
+
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')
