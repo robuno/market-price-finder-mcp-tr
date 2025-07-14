@@ -2,7 +2,7 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 from typing import Optional, Dict, Any
-# from parser_utils import parse_prompt  # externalized prompt parser
+from parser_utils import parse_prompt  # externalized prompt parser
 import re
 from typing import Union
 
@@ -16,6 +16,9 @@ mcp = FastMCP("market-finder")
 # LATITUDE: float = 41.0906203414694
 # LONGITUDE: float = 28.811139751321
 
+LATITUDE: float | None = None
+LONGITUDE: float | None = None
+
 async def search_market_product(
     keywords: str,
     latitude: float,
@@ -23,10 +26,10 @@ async def search_market_product(
     distance: int = 4,
     page: int = 0,
     size: int = 24
-) -> Optional[Dict[str, Any]]:
+) -> Optional[list[dict[str, Any]]]:
     """
-    Search for a product by keyword using the Market Fiyatı API.
-    Returns the most relevant product's title, lowest price, and market name.
+    Search for products by keyword using the Market Fiyatı API.
+    Returns a list of products, each with title, lowest price, and market name.
     """
     url = "https://api.marketfiyati.org.tr/api/v2/search"
     payload = {
@@ -52,27 +55,28 @@ async def search_market_product(
             if not data.get("content"):
                 return None
 
-            product = data["content"][0]
-            title = product.get("title")
-
-            depots = product.get("productDepotInfoList", [])
-            if not depots:
-                return {"title": title, "price": None, "market": None}
-
-            best_depot = min(depots, key=lambda d: d.get("price", float("inf")))
-            return {
-                "title": title,
-                "price": best_depot.get("price"),
-                "market": best_depot.get("marketAdi")
-            }
+            results = []
+            for product in data["content"]:
+                title = product.get("title")
+                depots = product.get("productDepotInfoList", [])
+                if not depots:
+                    results.append({"title": title, "price": None, "market": None})
+                    continue
+                best_depot = min(depots, key=lambda d: d.get("price", float("inf")))
+                results.append({
+                    "title": title,
+                    "price": best_depot.get("price"),
+                    "market": best_depot.get("marketAdi")
+                })
+            return results
 
         except Exception:
             return None
 
 @mcp.tool()
-async def get_market_product(keywords: str) -> Dict[str, Any] | str:
+async def get_market_product(keywords: str) -> list[dict[str, Any]] | str:
     """
-    MCP tool to search for a product by keywords and return its name, price, and market
+    MCP tool to search for products by keywords and return a list of their name, price, and market
     using the current LATITUDE and LONGITUDE values.
     """
     global LATITUDE, LONGITUDE
@@ -137,38 +141,6 @@ async def find_cheapest_product_by_location(prompt: str) -> dict[str, Any] | str
 
     result = await get_market_product(product_text)
     return result
-
-
-
-def parse_prompt(prompt: str) -> Union[dict[str, str], str]:
-    """
-    Parse a natural language prompt to extract location and product.
-    
-    Supported patterns:
-    - "X konumu için Y"
-    - "X'de Y ne kadar"
-    - "X'da Y ne kadar"
-    - "X civarında Y fiyatı"
-    """
-    prompt = prompt.lower().strip()
-
-    patterns = [
-        r"(?P<location>.+?)\s+konumu için\s+(?P<product>.+?)\s+.*",
-        r"(?P<location>.+?)'da\s+(?P<product>.+?)\s+ne kadar",
-        r"(?P<location>.+?)'de\s+(?P<product>.+?)\s+ne kadar",
-        r"(?P<location>.+?) civarında\s+(?P<product>.+?) fiyat[ıi]?",
-    ]
-
-    for pattern in patterns:
-        match = re.match(pattern, prompt)
-        if match:
-            return {
-                "location": match.group("location").strip(),
-                "product": match.group("product").strip()
-            }
-
-    return "Could not extract location and product. Please provide a clearer input."
-
 
 
 if __name__ == "__main__":
