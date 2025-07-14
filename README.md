@@ -2,11 +2,8 @@ This project is a Model Context Protocol (MCP) tool that helps users find the ch
 
 Features
 - Parses natural prompts like:
-
-'''
 "How much is Eti Tutku in Başakşehir?"
 "Çokoprens fiyatı in Başak Mah, Başakşehir"
-'''
 
 - Converts textual location into geographic coordinates using OpenStreetMap.
 - Queries the MarketFiyati.org.tr API to find real-time product prices in various markets (Migros, A101, Bim, etc.).
