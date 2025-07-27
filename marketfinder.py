@@ -51,6 +51,7 @@ async def search_market_product(
             response = await client.post(url, json=payload, headers=headers, timeout=30.0)
             response.raise_for_status()
             data = response.json()
+            print("Sent Headers:", response.request.headers)
 
             if not data.get("content"):
                 return None
